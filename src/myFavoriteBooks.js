@@ -4,7 +4,9 @@ import Jumbotron from 'react-bootstrap/Jumbotron';
 import './myFavoriteBooks.css';
 import axios from 'axios';
 import { withAuth0 } from '@auth0/auth0-react';
-import Carousel from 'react-bootstrap/Carousel'
+import Card from 'react-bootstrap/Card';
+import Button from 'react-bootstrap/Button';
+import Form from './form';
 
 class MyFavoriteBooks extends React.Component {
 
@@ -12,7 +14,11 @@ class MyFavoriteBooks extends React.Component {
     super(props);
     this.state = {
       books: [],
-      showBooks: false
+      showBooks: false,
+      bookName: '',
+      description: '',
+      urlImg: '',
+      server: process.env.REACT_APP_SERVER_URL
     }
   }
 
@@ -21,34 +27,101 @@ class MyFavoriteBooks extends React.Component {
     console.log('books', books.data)
     this.setState({
       books: books.data,
-      showBooks: true
+      showBooks: true,
     });
   }
+
+
+  updateBookName = (event) => {
+    this.setState({
+      bookName: event.target.value
+    })
+  }
+
+
+  updateDescription = (event) => {
+    this.setState({
+      description: event.target.value
+    })
+  }
+
+
+  updateUrlImg = (event) => {
+    this.setState({
+      urlImg: event.target.value
+    })
+  }
+
+
+
+  addBook = async (event) => {
+    event.preventDefault();
+    const bookFormData = {
+      bookName: this.state.bookName,
+      description: this.state.description,
+      urlImg: this.state.urlImg,
+      email: this.props.auth0.user.email
+
+    }
+    const newBooks = await axios.post(`${this.state.server}/addBook`, bookFormData)
+
+    this.setState({
+      books: newBooks.data
+    })
+
+  }
+
+
+  deleteBook = async (index) => {
+    const ownerEmail = {
+      email: this.props.auth0.user.email
+    }
+    let newBooks = await axios.delete(`${this.state.server}/deleteBook/${index}`, { params: ownerEmail })
+
+    this.setState({
+      books: newBooks.data
+    })
+
+  }
+
 
   render() {
     return (
       <Jumbotron>
+
         <h1>My Favorite Books</h1>
-        <p>
-          This is a collection of my favorite books
-        </p>
-        <Carousel style={{width:'400px'}}>
+
+
+        <Form
+          updateBookNameProps={this.updateBookName}
+          updateBookDescriptionProps={this.updateDescription}
+          updateBookUrlImgProps={this.updateUrlImg}
+          addBookProps={this.addBook}
+        />
+
+        <p>This is a collection of my favorite books</p>
+        <div>
           {this.state.showBooks &&
-          this.state.books.map(item =>{
-            return(
-          <Carousel.Item>
-            <img
-              className="d-block w-100"
-              src={item.urlImg}
-              alt="First slide"
-            />
-            <Carousel.Caption>
-              <h3>{item.bookName}</h3>
-              <p>{item.description}</p>
-            </Carousel.Caption>
-          </Carousel.Item>
-          )})}
-        </Carousel>
+            this.state.books.map((item, idx) => {
+              return (
+
+                <Card style={{ width: '18rem' }}>
+                  <Card.Img variant="top" src={item.urlImg} alt={item.urlImg} />
+                  <Card.Body>
+                    <Card.Title>{item.bookName}</Card.Title>
+                    <Card.Text>
+                      {item.description}
+                    </Card.Text>
+                    <Button variant="primary" onClick={()=>this.deleteBook(idx)}>Delete</Button>
+                  </Card.Body>
+                </Card>
+
+              )
+            })}
+
+        </div>
+
+
       </Jumbotron>
     )
   }
