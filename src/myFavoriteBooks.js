@@ -7,6 +7,7 @@ import { withAuth0 } from '@auth0/auth0-react';
 import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
 import Form from './form';
+import UpdateBookForm from './updateForm';
 
 class MyFavoriteBooks extends React.Component {
 
@@ -18,7 +19,10 @@ class MyFavoriteBooks extends React.Component {
       bookName: '',
       description: '',
       urlImg: '',
-      server: process.env.REACT_APP_SERVER_URL
+      server: process.env.REACT_APP_SERVER_URL,
+      showUpdateStatus: false,
+      show: false,
+      index: 0,
     }
   }
 
@@ -30,6 +34,45 @@ class MyFavoriteBooks extends React.Component {
       showBooks: true,
     });
   }
+
+
+
+  updateBook = async (e) => {
+    e.preventDefault();
+    // const { user } = this.props.auth0;
+    const bookData = {
+      bookName: this.state.bookName,
+      description: this.state.description,
+      urlImg: this.state.urlImg,
+      ownerEmail: this.props.auth0.user.email,
+    }
+
+    console.log('hi updatebook');
+
+    let booksData = await axios.put(`${this.state.server}/updatebook/${this.state.index}`, bookData)
+    this.setState({
+      books: booksData.data
+    })
+  }
+
+
+  showUpdateForm = (idx) => {
+
+    const chosenBook = this.state.books.filter((val, index) => {
+      return idx === index;
+    })
+
+    console.log('hi', chosenBook);
+
+    this.setState({
+      showUpdateStatus: true,
+      index: idx,
+      bookName: chosenBook[0].bookName,
+      description: chosenBook[0].description,
+      urlImg: chosenBook[0].urlImg,
+    })
+  }
+
 
 
   updateBookName = (event) => {
@@ -52,6 +95,24 @@ class MyFavoriteBooks extends React.Component {
     })
   }
 
+  showModal = () => {
+    this.setState({
+      show: true
+    })
+  }
+
+  handleClose1 = () => {
+    this.setState({
+      show: false
+    })
+  }
+
+  handleClose = () => {
+    this.setState({
+      showUpdateStatus: false,
+    })
+  }
+
 
 
   addBook = async (event) => {
@@ -60,7 +121,7 @@ class MyFavoriteBooks extends React.Component {
       bookName: this.state.bookName,
       description: this.state.description,
       urlImg: this.state.urlImg,
-      email: this.props.auth0.user.email
+      ownerEmail: this.props.auth0.user.email
 
     }
     const newBooks = await axios.post(`${this.state.server}/addBook`, bookFormData)
@@ -74,7 +135,7 @@ class MyFavoriteBooks extends React.Component {
 
   deleteBook = async (index) => {
     const ownerEmail = {
-      email: this.props.auth0.user.email
+      ownerEmail: this.props.auth0.user.email
     }
     let newBooks = await axios.delete(`${this.state.server}/deleteBook/${index}`, { params: ownerEmail })
 
@@ -89,18 +150,35 @@ class MyFavoriteBooks extends React.Component {
     return (
       <Jumbotron>
 
+
         <h1>My Favorite Books</h1>
+        <Button variant="outline-dark" onClick={this.showModal} size="lg" block>ADD BOOK</Button>
+        {this.state.show &&
+          <Form
+            updateBookNameProps={this.updateBookName}
+            updateBookDescriptionProps={this.updateDescription}
+            updateBookUrlImgProps={this.updateUrlImg}
+            addBookProps={this.addBook}
+            handleClose1={this.handleClose1}
+            show={this.state.show}
+          />
+        }
 
-
-        <Form
-          updateBookNameProps={this.updateBookName}
-          updateBookDescriptionProps={this.updateDescription}
-          updateBookUrlImgProps={this.updateUrlImg}
-          addBookProps={this.addBook}
-        />
-
-        <p>This is a collection of my favorite books</p>
+        {this.state.showUpdateStatus &&
+          <UpdateBookForm
+            bookName={this.state.bookName}
+            description={this.state.description}
+            urlImg={this.state.urlImg}
+            updateBookNameProps={this.updateBookName}
+            updateBookDescriptionProps={this.updateDescription}
+            updateBookUrlImgProps={this.updateUrlImg}
+            updateBook={this.updateBook}
+            showUpdateStatus={this.state.showUpdateStatus}
+            handleClose={this.handleClose}
+          />
+        }
         <div>
+
           {this.state.showBooks &&
             this.state.books.map((item, idx) => {
               return (
@@ -112,7 +190,8 @@ class MyFavoriteBooks extends React.Component {
                     <Card.Text>
                       {item.description}
                     </Card.Text>
-                    <Button variant="primary" onClick={()=>this.deleteBook(idx)}>Delete</Button>
+                    <Button variant="primary" onClick={() => this.deleteBook(idx)}>Delete</Button>
+                    <Button variant="outline-success" onClick={() => this.showUpdateForm(idx)}>Update</Button>
                   </Card.Body>
                 </Card>
 
